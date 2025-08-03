@@ -2,26 +2,92 @@ import { Hono } from "hono";
 import { validator } from "hono/validator";
 import db from "../../db/index.js";
 import {
+  CategoriesEnum,
   createPostSchema,
   postsTable,
   updatePostSchema,
 } from "../../db/schema/post.js";
-import { eq } from "drizzle-orm";
+import { asc, count, eq, inArray, ilike, and, or } from "drizzle-orm";
+import calculatePagination from "../../utils/calculatePaginaiton.js";
+import z from "zod";
 
 const postRouter = new Hono();
 
 postRouter
-  .get("/", async (c) => {
-    const posts = await db.select().from(postsTable);
-    return c.json(
-      {
-        success: true,
-        message: "Posts retrieved successfully",
-        data: posts,
-      },
-      200,
-    );
-  })
+  .get(
+    "/",
+    validator("query", (values, c) => {
+      let { page = "1", limit = "10", search = "", category } = values;
+
+      if (Array.isArray(page)) page = page[0];
+      if (Array.isArray(limit)) limit = limit[0];
+      if (Array.isArray(search)) search = search[0];
+      if (!Array.isArray(category)) category = [category];
+
+      let parsed;
+      if (category[0]) {
+        const { data, error } = z
+          .array(z.enum(CategoriesEnum.enumValues))
+          .safeParse(category);
+
+        if (!data)
+          return c.json(
+            {
+              success: false,
+              message: `Invalid category. Valid categories are: ${CategoriesEnum.enumValues.join(", ")}`,
+              error,
+            },
+            400,
+          );
+        parsed = data;
+      }
+
+      return { page, limit, search, category: parsed };
+    }),
+    async (c) => {
+      const {
+        page: queryPage,
+        limit: queryLimit,
+        search,
+        category,
+      } = c.req.valid("query");
+      const { page, limit, offset } = calculatePagination({
+        page: queryPage,
+        limit: queryLimit,
+      });
+
+      const [posts, [{ count: total }]] = await Promise.all([
+        db
+          .select()
+          .from(postsTable)
+          .where(
+            and(
+              inArray(
+                postsTable.category,
+                category ?? CategoriesEnum.enumValues,
+              ),
+              or(
+                ilike(postsTable.title, `%${search}%`),
+                ilike(postsTable.body, `%${search}%`),
+              ),
+            ),
+          )
+          .orderBy(asc(postsTable.created_at))
+          .limit(limit)
+          .offset(offset),
+        db.select({ count: count() }).from(postsTable),
+      ]);
+
+      return c.json(
+        {
+          success: true,
+          message: "Posts retrieved successfully",
+          data: { meta: { total, page, limit }, data: posts },
+        },
+        200,
+      );
+    },
+  )
   .get("/:id", async (c) => {
     const id = c.req.param("id");
 
