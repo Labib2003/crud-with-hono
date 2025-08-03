@@ -1,5 +1,5 @@
 import { integer, pgEnum, pgTable, varchar } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
+import { createInsertSchema, createUpdateSchema } from "drizzle-zod";
 
 export const CategoriesEnum = pgEnum("categories", [
   "tech",
@@ -17,3 +17,4 @@ export const postsTable = pgTable("posts", {
 });
 
 export const createPostSchema = createInsertSchema(postsTable);
+export const updatePostSchema = createUpdateSchema(postsTable);
