@@ -1,15 +1,15 @@
 import { Hono } from "hono";
 import { validator } from "hono/validator";
-import db from "../../db/index.js";
+import { asc, count, eq, inArray, ilike, and, or } from "drizzle-orm";
+import z from "zod";
 import {
   CategoriesEnum,
   createPostSchema,
   postsTable,
   updatePostSchema,
-} from "../../db/schema/post.js";
-import { asc, count, eq, inArray, ilike, and, or } from "drizzle-orm";
-import calculatePagination from "../../utils/calculatePaginaiton.js";
-import z from "zod";
+} from "../db/schema/post.js";
+import calculatePagination from "../utils/calculatePaginaiton.js";
+import db from "../db/index.js";
 
 const postRouter = new Hono();
 
@@ -88,10 +88,11 @@ postRouter
       );
     },
   )
+
   .get("/:id", async (c) => {
     const id = c.req.param("id");
 
-    const post = await db
+    const [post] = await db
       .select()
       .from(postsTable)
       .where(eq(postsTable.id, parseInt(id)));
@@ -105,12 +106,13 @@ postRouter
       200,
     );
   })
+
   .post(
     "/",
     validator("json", (value, c) => {
       const parsed = createPostSchema.safeParse(value);
 
-      if (!parsed.success) {
+      if (!parsed.success)
         return c.json(
           {
             success: false,
@@ -119,7 +121,7 @@ postRouter
           },
           401,
         );
-      }
+
       return parsed.data;
     }),
     async (c) => {
@@ -137,12 +139,13 @@ postRouter
       );
     },
   )
+
   .patch(
     "/:id",
     validator("json", (value, c) => {
       const parsed = updatePostSchema.safeParse(value);
 
-      if (!parsed.success) {
+      if (!parsed.success)
         return c.json(
           {
             success: false,
@@ -151,7 +154,7 @@ postRouter
           },
           401,
         );
-      }
+
       return parsed.data;
     }),
     async (c) => {
@@ -173,6 +176,7 @@ postRouter
       );
     },
   )
+
   .delete("/:id", async (c) => {
     const id = c.req.param("id");
 
