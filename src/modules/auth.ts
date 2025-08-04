@@ -5,6 +5,8 @@ import { hashPassword, verifyPasswordHash } from "../utils/password.js";
 import db from "../db/index.js";
 import authValidator from "../customValidators/auth.validator.js";
 import { eq } from "drizzle-orm";
+import jwt from "jsonwebtoken";
+import env from "../config/env.js";
 
 const authRouter = new Hono();
 
@@ -100,10 +102,29 @@ authRouter
           401,
         );
 
+      const accessToken = jwt.sign(
+        { sub: user.id },
+        env.jwt.accessTokenSecret,
+        { expiresIn: "1m" },
+      );
+      const refreshToken = jwt.sign(
+        { sub: user.id },
+        env.jwt.refreshTokenSecret,
+        {
+          expiresIn: "2m",
+        },
+      );
+
+      c.header(
+        "Set-Cookie",
+        `refresh_token=${refreshToken}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Strict; Secure`,
+      );
+
       return c.json(
         {
           success: true,
           message: "Login successful",
+          accessToken,
         },
         200,
       );

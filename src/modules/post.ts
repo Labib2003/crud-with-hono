@@ -10,6 +10,7 @@ import {
 } from "../db/schema/post.js";
 import calculatePagination from "../utils/calculatePaginaiton.js";
 import db from "../db/index.js";
+import auth from "../middleware/auth.js";
 
 const postRouter = new Hono();
 
@@ -89,7 +90,8 @@ postRouter
     },
   )
 
-  .get("/:id", async (c) => {
+  .get("/:id", auth, async (c) => {
+    const newAccessToken = c.get("newAccessToken");
     const id = c.req.param("id");
 
     const [post] = await db
@@ -102,6 +104,7 @@ postRouter
         success: true,
         message: `Post with ID: ${id} retrieved successfully`,
         data: post,
+        newAccessToken: newAccessToken ? newAccessToken : undefined,
       },
       200,
     );
@@ -109,6 +112,7 @@ postRouter
 
   .post(
     "/",
+    auth,
     validator("json", (value, c) => {
       const parsed = createPostSchema.safeParse(value);
 
@@ -125,6 +129,7 @@ postRouter
       return parsed.data;
     }),
     async (c) => {
+      const newAccessToken = c.get("newAccessToken");
       const postData = c.req.valid("json");
 
       const response = await db.insert(postsTable).values(postData);
@@ -134,6 +139,7 @@ postRouter
           success: true,
           message: "Post created successfully",
           data: response,
+          newAccessToken: newAccessToken ? newAccessToken : undefined,
         },
         201,
       );
@@ -142,6 +148,7 @@ postRouter
 
   .patch(
     "/:id",
+    auth,
     validator("json", (value, c) => {
       const parsed = updatePostSchema.safeParse(value);
 
@@ -158,6 +165,7 @@ postRouter
       return parsed.data;
     }),
     async (c) => {
+      const newAccessToken = c.get("newAccessToken");
       const id = c.req.param("id");
       const updateData = c.req.valid("json");
 
@@ -171,13 +179,15 @@ postRouter
           success: true,
           message: `Post with ID: ${id} updated successfully`,
           data: response,
+          newAccessToken: newAccessToken ? newAccessToken : undefined,
         },
         200,
       );
     },
   )
 
-  .delete("/:id", async (c) => {
+  .delete("/:id", auth, async (c) => {
+    const newAccessToken = c.get("newAccessToken");
     const id = c.req.param("id");
 
     const response = await db
@@ -189,6 +199,7 @@ postRouter
         success: true,
         message: `Post with ID: ${id} deleted successfully`,
         data: response,
+        newAccessToken: newAccessToken ? newAccessToken : undefined,
       },
       200,
     );
