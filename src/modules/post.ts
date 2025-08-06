@@ -90,8 +90,7 @@ postRouter
     },
   )
 
-  .get("/:id", auth, async (c) => {
-    const newAccessToken = c.get("newAccessToken");
+  .get("/:id", async (c) => {
     const id = c.req.param("id");
 
     const [post] = await db
@@ -104,7 +103,6 @@ postRouter
         success: true,
         message: `Post with ID: ${id} retrieved successfully`,
         data: post,
-        newAccessToken: newAccessToken ? newAccessToken : undefined,
       },
       200,
     );
@@ -130,9 +128,12 @@ postRouter
     }),
     async (c) => {
       const newAccessToken = c.get("newAccessToken");
+      const userId = c.get("userId");
       const postData = c.req.valid("json");
 
-      const response = await db.insert(postsTable).values(postData);
+      const response = await db
+        .insert(postsTable)
+        .values({ ...postData, created_by: Number(userId) });
 
       return c.json(
         {
@@ -166,8 +167,31 @@ postRouter
     }),
     async (c) => {
       const newAccessToken = c.get("newAccessToken");
+      const userId = c.get("userId");
       const id = c.req.param("id");
       const updateData = c.req.valid("json");
+
+      const [post] = await db
+        .select()
+        .from(postsTable)
+        .where(eq(postsTable.id, parseInt(id)));
+
+      if (!post)
+        return c.json(
+          {
+            success: false,
+            message: `Post with ID: ${id} not found`,
+          },
+          404,
+        );
+      if (post.created_by !== Number(userId))
+        return c.json(
+          {
+            success: false,
+            message: `You are not authorized to update this post`,
+          },
+          403,
+        );
 
       const response = await db
         .update(postsTable)
@@ -188,7 +212,30 @@ postRouter
 
   .delete("/:id", auth, async (c) => {
     const newAccessToken = c.get("newAccessToken");
+    const userId = c.get("userId");
     const id = c.req.param("id");
+
+    const [post] = await db
+      .select()
+      .from(postsTable)
+      .where(eq(postsTable.id, parseInt(id)));
+
+    if (!post)
+      return c.json(
+        {
+          success: false,
+          message: `Post with ID: ${id} not found`,
+        },
+        404,
+      );
+    if (post.created_by !== Number(userId))
+      return c.json(
+        {
+          success: false,
+          message: `You are not authorized to update this post`,
+        },
+        403,
+      );
 
     const response = await db
       .delete(postsTable)
