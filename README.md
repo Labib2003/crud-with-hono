@@ -64,9 +64,9 @@ This project is a simple CRUD backend built using the [Hono](https://hono.dev/) 
      REFRESH_TOKEN_SECRET=your_refresh_token_secret
      ```
 
-4. Run database migrations (if applicable):
+4. Run database migrations:
    ```bash
-   npm run migrate
+   npx drizzle-kit push
    ```
 
 ## Running the Application
