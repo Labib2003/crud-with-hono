@@ -1,6 +1,6 @@
 # Simple CRUD Backend with Hono
 
-This project is a simple CRUD backend built using the [Hono](https://hono.dev/) framework. It provides essential endpoints for user authentication and CRUD operations for posts. The backend is designed with modern best practices, including token-based authentication, request validation, and secure password hashing.
+This project is a simple CRUD backend built using the [Hono](https://hono.dev/) framework. It provides essential endpoints for user authentication and CRUD operations for posts. The backend is designed with modern best practices, including modular codebase, token-based authentication, request validation, and secure password hashing.
 
 ## Features
 
@@ -16,6 +16,8 @@ This project is a simple CRUD backend built using the [Hono](https://hono.dev/) 
 ### Posts
 
 - **GET /posts**: Retrieve all posts (public endpoint).
+  - Retrieves a paginated list of posts.
+  - Supports searching and category filtering.
 - **GET /posts/:id**: Retrieve a specific post by ID (public endpoint).
 - **POST /posts**: Create a new post (requires bearer token).
   - Validates the request body using Zod.
